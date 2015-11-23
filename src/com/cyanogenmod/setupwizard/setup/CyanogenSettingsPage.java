@@ -27,7 +27,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ThemeUtils;
 import android.content.res.ThemeConfig;
 import android.content.res.ThemeManager;
-import android.hardware.CmHardwareManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
@@ -55,8 +54,12 @@ import com.cyanogenmod.setupwizard.ui.WebViewDialogFragment;
 import com.cyanogenmod.setupwizard.util.SetupWizardUtils;
 import com.cyanogenmod.setupwizard.util.WhisperPushUtils;
 
+import cyanogenmod.providers.CMSettings;
+
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
+
+import cyanogenmod.hardware.CMHardwareManager;
 
 public class CyanogenSettingsPage extends SetupPage {
 
@@ -106,26 +109,25 @@ public class CyanogenSettingsPage extends SetupPage {
 
         Settings.Secure.putInt(context.getContentResolver(),
                 Settings.Secure.DEV_FORCE_SHOW_NAVBAR, enabled ? 1 : 0);
-        final CmHardwareManager cmHardwareManager =
-                (CmHardwareManager) context.getSystemService(Context.CMHW_SERVICE);
-        cmHardwareManager.set(CmHardwareManager.FEATURE_KEY_DISABLE, enabled);
+        final CMHardwareManager hardware = CMHardwareManager.getInstance(context);
+        hardware.set(CMHardwareManager.FEATURE_KEY_DISABLE, enabled);
 
         /* Save/restore button timeouts to disable them in softkey mode */
         SharedPreferences.Editor editor = prefs.edit();
 
         if (enabled) {
-            int currentBrightness = Settings.Secure.getInt(context.getContentResolver(),
-                    Settings.Secure.BUTTON_BRIGHTNESS, defaultBrightness);
+            int currentBrightness = CMSettings.Secure.getInt(context.getContentResolver(),
+                    CMSettings.Secure.BUTTON_BRIGHTNESS, defaultBrightness);
             if (!prefs.contains("pre_navbar_button_backlight")) {
                 editor.putInt("pre_navbar_button_backlight", currentBrightness);
             }
-            Settings.Secure.putInt(context.getContentResolver(),
-                    Settings.Secure.BUTTON_BRIGHTNESS, 0);
+            CMSettings.Secure.putInt(context.getContentResolver(),
+                    CMSettings.Secure.BUTTON_BRIGHTNESS, 0);
         } else {
             int oldBright = prefs.getInt("pre_navbar_button_backlight", -1);
             if (oldBright != -1) {
-                Settings.Secure.putInt(context.getContentResolver(),
-                        Settings.Secure.BUTTON_BRIGHTNESS, oldBright);
+                CMSettings.Secure.putInt(context.getContentResolver(),
+                        CMSettings.Secure.BUTTON_BRIGHTNESS, oldBright);
                 editor.remove("pre_navbar_button_backlight");
             }
         }
@@ -169,8 +171,9 @@ public class CyanogenSettingsPage extends SetupPage {
         Bundle privacyData = getData();
         if (privacyData != null
                 && privacyData.containsKey(KEY_SEND_METRICS)) {
-            Settings.Secure.putInt(mContext.getContentResolver(), Settings.Secure.STATS_COLLECTION,
-                    privacyData.getBoolean(KEY_SEND_METRICS) ? 1 : 0);
+            CMSettings.Secure.putInt(mContext.getContentResolver(),
+                    CMSettings.Secure.STATS_COLLECTION, privacyData.getBoolean(KEY_SEND_METRICS)
+                            ? 1 : 0);
         }
     }
 
@@ -192,15 +195,13 @@ public class CyanogenSettingsPage extends SetupPage {
     }
 
     private static boolean hideKeyDisabler(Context ctx) {
-        final CmHardwareManager cmHardwareManager =
-                (CmHardwareManager) ctx.getSystemService(Context.CMHW_SERVICE);
-        return !cmHardwareManager.isSupported(CmHardwareManager.FEATURE_KEY_DISABLE);
+        final CMHardwareManager hardware = CMHardwareManager.getInstance(ctx);
+        return !hardware.isSupported(CMHardwareManager.FEATURE_KEY_DISABLE);
     }
 
     private static boolean isKeyDisablerActive(Context ctx) {
-        final CmHardwareManager cmHardwareManager =
-                (CmHardwareManager) ctx.getSystemService(Context.CMHW_SERVICE);
-        return cmHardwareManager.get(CmHardwareManager.FEATURE_KEY_DISABLE);
+        final CMHardwareManager hardware = CMHardwareManager.getInstance(ctx);
+        return hardware.get(CMHardwareManager.FEATURE_KEY_DISABLE);
     }
 
     private static boolean hideWhisperPush(Context context) {
